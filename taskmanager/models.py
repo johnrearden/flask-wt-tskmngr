@@ -26,3 +26,9 @@ class Task(db.Model):
         return "#{0} - Task: {1} | Urgent: {2}".format(
             self.id, self.task_name, self.is_urgent
         )
+
+
+class AppUser(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(50), unique=True, nullable=False)
+    password = db.Column(db.String(256), nullable=False)

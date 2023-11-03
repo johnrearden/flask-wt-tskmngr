@@ -1,6 +1,7 @@
-from flask import render_template, request, redirect, url_for
+from flask import render_template, request, redirect, url_for, flash
 from taskmanager import app, db
-from taskmanager.models import Category, Task
+from taskmanager.models import Category, Task, AppUser
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 @app.route("/")
@@ -92,3 +93,36 @@ def delete_task(task_id):
     db.session.commit()
     return redirect(url_for("tasks"))
 
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    if request.method == "POST":
+        name = request.form.get("username").lower()
+        user_exists = AppUser.query.filter(AppUser.username==name).first() is not None
+        if user_exists:
+            flash("Username already exists")
+            return redirect(url_for("register"))
+        else:
+            new_user = AppUser(
+                username=name,
+                password=generate_password_hash(request.form.get("password"))
+            )
+            db.session.add(new_user)
+            db.session.commit()
+    return render_template("register.html")
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username").lower()
+        password = request.form.get("password")
+        user = AppUser.query.filter(AppUser.username==username).first()
+        if user is not None:
+            password_correct = check_password_hash(user.password, password)
+            if password_correct:
+                return redirect(url_for("tasks"))
+        flash("Sorry, your login details are incorrect. Please try again")
+        return redirect(url_for("login"))
+         
+    return render_template("login.html")
