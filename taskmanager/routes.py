@@ -71,6 +71,7 @@ def add_task():
 @app.route("/edit_task/<int:task_id>", methods=["GET", "POST"])
 def edit_task(task_id):
     task = Task.query.get_or_404(task_id)
+    categories = Category.query.order_by(Category.category_name).all()
     if request.method == "POST":
         task = Task.query.get_or_404(task_id)
         task.task_name=request.form.get("task_name")
@@ -80,8 +81,8 @@ def edit_task(task_id):
         task.category_id=request.form.get("category_id")
         db.session.add(task)
         db.session.commit()
-        return redirect("tasks")
-    return render_template("edit_task.html", task=task)
+        return redirect(url_for("tasks"))
+    return render_template("edit_task.html", task=task, categories=categories)
 
 
 @app.route("/delete_task/<int:task_id>")
