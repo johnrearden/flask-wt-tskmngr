@@ -1,8 +1,8 @@
-from flask import render_template, request, redirect, url_for, flash
+from flask import render_template, request, redirect, url_for, flash, session
 from taskmanager import app, db
 from taskmanager.models import Category, Task, AppUser
 from werkzeug.security import generate_password_hash, check_password_hash
-
+from .decorators import login_required
 
 @app.route("/")
 def home():
@@ -19,6 +19,7 @@ def categories():
 
 
 @app.route("/add_category", methods=["GET", "POST"])
+@login_required
 def add_category():
     if request.method == "POST":
         category = Category(category_name=request.form.get('category_name'))
@@ -29,6 +30,7 @@ def add_category():
 
 
 @app.route("/edit_category/<int:category_id>", methods=["GET", "POST"])
+@login_required
 def edit_category(category_id):
     category = Category.query.get_or_404(category_id)
     if request.method == "POST":
@@ -39,11 +41,13 @@ def edit_category(category_id):
 
 
 @app.route("/delete_category/<int:category_id>")
+@login_required
 def delete_category(category_id):
     category = Category.query.get_or_404(category_id)
     db.session.delete(category)
     db.session.commit()
     return redirect(url_for('categories'))
+
 
 
 @app.route("/tasks")
@@ -53,6 +57,7 @@ def tasks():
 
 
 @app.route("/add_task", methods=["GET", "POST"])
+@login_required
 def add_task():
     categories = Category.query.order_by("category_name").all()
     if request.method == "POST":
@@ -70,6 +75,7 @@ def add_task():
 
 
 @app.route("/edit_task/<int:task_id>", methods=["GET", "POST"])
+@login_required
 def edit_task(task_id):
     task = Task.query.get_or_404(task_id)
     categories = Category.query.order_by(Category.category_name).all()
@@ -87,6 +93,7 @@ def edit_task(task_id):
 
 
 @app.route("/delete_task/<int:task_id>")
+@login_required
 def delete_task(task_id):
     task = Task.query.get_or_404(task_id)
     db.session.delete(task)
@@ -109,6 +116,8 @@ def register():
             )
             db.session.add(new_user)
             db.session.commit()
+            session["user"] = name
+            return redirect(url_for("tasks"))
     return render_template("register.html")
 
 
@@ -121,8 +130,20 @@ def login():
         if user is not None:
             password_correct = check_password_hash(user.password, password)
             if password_correct:
+                session["user"] = username
+                flash(f'Welcome, {username}')
                 return redirect(url_for("tasks"))
         flash("Sorry, your login details are incorrect. Please try again")
         return redirect(url_for("login"))
          
     return render_template("login.html")
+
+
+@app.route("/logout")
+def logout():
+    if "user" in session.keys():
+        flash("You have been logged out")
+        session.pop("user")
+    else: 
+        flash("Already logged out")
+    return redirect(url_for("login"))
